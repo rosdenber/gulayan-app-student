@@ -26,10 +26,18 @@ function Login() {
     //TODO make the login process functional
     setLoading(true)
     try {
-      // keep the loading state visible while the login request is pending
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      const { email, password } = formData
+      const response = await api.post('/login', { email, password })
+      const token = response?.data?.token
 
-      // TODO: replace this stub with actual api.post('/login') handling
+      if (!token) {
+        throw new Error('Unable to sign in. Please check your credentials.')
+      }
+
+      localStorage.setItem('token', token)
+      navigate('/dashboard')
+    } catch (error) {
+      console.error('Login failed', error)
     } finally {
       setLoading(false)
     }
