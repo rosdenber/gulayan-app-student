@@ -39,8 +39,35 @@ function Records() {
     }
   }
   const handleLoadRecords = async (page = 1, append = false) => {
-    //TODO: load the data from the database
-    //TODO: implement paginated data loading
+    try {
+      const isInitialLoad = page === 1 && !append;
+      if (isInitialLoad) {
+        setIsLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
+      const response = await api.get('plants', {
+        params: { page, per_page: 10 }
+      });
+
+      const newRecords = response.data.data || response.data;
+
+      if (append) {
+        setRecords(prev => [...prev, ...newRecords]);
+      } else {
+        setRecords(newRecords);
+      }
+    } catch (error) {
+      console.error('Load records error:', error);
+      if (page === 1) {
+        toast.error('Error loading records.');
+      }
+      setRecords([]);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
   }
   const handleAddRecord = async (formData) => {
     try {
