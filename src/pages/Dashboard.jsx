@@ -20,7 +20,7 @@ function Dashboard() {
     }
   ];
 
-
+ //feat: fetch plants data from server
   useEffect(() => {
     const loadPlants = async () => {
       try {
