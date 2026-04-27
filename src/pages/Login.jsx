@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import PlantLoading from '../components/PlantLoading'
 
 function Login() {
   const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -20,8 +22,25 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (loading) return
     //TODO make the login process functional
+    setLoading(true)
+    try {
+      const { email, password } = formData
+      const response = await api.post('/login', { email, password })
+      const token = response?.data?.token
 
+      if (!token) {
+        throw new Error('Unable to sign in. Please check your credentials.')
+      }
+
+      localStorage.setItem('token', token)
+      navigate('/dashboard')
+    } catch (error) {
+      console.error('Login failed', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -45,8 +64,9 @@ function Login() {
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-green-100">
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Field */}
-            <div>
+            <fieldset disabled={loading} className="space-y-5">
+              {/* Email Field */}
+              <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
               </label>
@@ -87,12 +107,21 @@ function Login() {
             {/* TODO disable and show loading icon while logging in. */}
             <button
               type="submit"
+              disabled={loading}
               className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold 
                             hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 
-                            focus:ring-offset-2 transition duration-200 shadow-md"
+                            focus:ring-offset-2 transition duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In
+              {loading ? (
+                <>
+                  <PlantLoading size="small" />
+                  Signing In...
+                </>
+              ) : (
+                'Sign In'
+              )}
             </button>
+          </fieldset>
           </form>
 
           {/* Divider */}
@@ -110,8 +139,10 @@ function Login() {
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
             <button
+              type="button"
               onClick={() => navigate('/signup')}
-              className="cursor-pointer text-green-600 hover:text-green-700 font-semibold">
+              disabled={loading}
+              className="cursor-pointer text-green-600 hover:text-green-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-green-600">
               Sign up for free
             </button>
           </p>
