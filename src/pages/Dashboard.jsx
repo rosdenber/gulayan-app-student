@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { FaLeaf, FaUsers, FaBoxOpen, FaChartLine } from "react-icons/fa";
-import axios from "axios";
+import { fetchPlants } from "../api";
 
 function Dashboard() {
  
@@ -22,7 +22,17 @@ function Dashboard() {
 
 
   useEffect(() => {
-    // TODO fetch plants data from server
+    const loadPlants = async () => {
+      try {
+        const plantsData = await fetchPlants();
+        setPlants(plantsData);
+      } catch (error) {
+        console.error("Error fetching plants:", error);
+        // You might want to show a toast notification here
+      }
+    };
+
+    loadPlants();
   }, []);
 
   return (

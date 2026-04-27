@@ -38,3 +38,9 @@ api.interceptors.response.use(
   }
 )
 
+// API functions
+export const fetchPlants = async () => {
+  const response = await api.get('/plants');
+  return response.data;
+};
+
