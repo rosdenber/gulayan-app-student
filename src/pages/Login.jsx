@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { api } from '../api'
 import PlantLoading from '../components/PlantLoading'
 
 function Login() {
   const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false
   })
-  const [isLoading, setIsLoading] = useState(false)
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -22,13 +23,25 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setIsLoading(true)
+    if (loading) return
+
+    setLoading(true)
     try {
-      // TODO make the login process functional
-      // Simulate login process
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      const { email, password } = formData
+      const response = await api.post('/login', { email, password })
+      const token = response?.data?.token
+
+      if (!token) {
+        throw new Error('Unable to sign in. Please check your credentials.')
+      }
+
+      localStorage.setItem('token', token)
+      navigate('/dashboard')
+    } catch (error) {
+      const message = error?.message || error?.response?.data?.message || 'Login failed. Please try again.'
+      toast.error(message)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
@@ -53,62 +66,64 @@ function Login() {
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-green-100">
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 
-                                focus:ring-green-500 focus:border-transparent transition duration-200 
-                                outline-none"
-                placeholder="you@example.com"
-              />
-            </div>
+            <fieldset disabled={loading} className="space-y-5">
+              {/* Email Field */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 
+                                  focus:ring-green-500 focus:border-transparent transition duration-200 
+                                  outline-none"
+                  placeholder="you@example.com"
+                />
+              </div>
 
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2
-                                 focus:ring-green-500 focus:border-transparent transition duration-200 
-                                 outline-none"
-                placeholder="••••••••"
-              />
-            </div>
+              {/* Password Field */}
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2
+                                   focus:ring-green-500 focus:border-transparent transition duration-200 
+                                   outline-none"
+                  placeholder="••••••••"
+                />
+              </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold 
-                            hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 
-                            focus:ring-offset-2 transition duration-200 shadow-md disabled:opacity-50 
-                            disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <PlantLoading size="small" />
-                  Signing In...
-                </>
-              ) : (
-                'Sign In'
-              )}
-            </button>
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold 
+                              hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 
+                              focus:ring-offset-2 transition duration-200 shadow-md disabled:opacity-50 
+                              disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <PlantLoading size="small" />
+                    Signing In...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
+              </button>
+            </fieldset>
           </form>
 
           {/* Divider */}
@@ -122,12 +137,12 @@ function Login() {
           </div>
 
           {/* Sign Up Link */}
-          {/* TODO disable sign up link while logging in */}
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
             <button
               onClick={() => navigate('/signup')}
-              className="cursor-pointer text-green-600 hover:text-green-700 font-semibold">
+              disabled={loading}
+              className="cursor-pointer text-green-600 hover:text-green-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-green-600">
               Sign up for free
             </button>
           </p>
