@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 function Records() {
   //TODO: add loading icon while ongoing ang loading ng records.
+  //Loading icon UI is already implementd with PlantLoading component, just need to add the loading state and logic to show it when loading records from the database.
   const [records, setRecords] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,27 +22,82 @@ function Records() {
   const observerTarget = useRef(null);
   const isInInitialMount = useRef(true);
 
-  const handleSearchPlants = async () => {
-    // TODO search from the the backend; in case that all records is not yet loaded
+  const handleSearchPlants = async (query) => {
+    try {
+      setIsLoading(true);
+      const response = await api.get('plants/search', {
+        params: { q: query }
+      });
+      setRecords(response.data.data || response.data);
+      setHasMore(false); // Disable infinite scroll during search
+    } catch (error) {
+      console.error('Search error:', error);
+      toast.error('Error searching records.');
+      setRecords([]);
+    } finally {
+      setIsLoading(false);
+    }
   }
   const handleLoadRecords = async (page = 1, append = false) => {
-    //TODO: load the data from the database
-    //TODO: implement paginated data loading
+    try {
+      const isInitialLoad = page === 1 && !append;
+      if (isInitialLoad) {
+        setIsLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
+      const response = await api.get('plants', {
+        params: { page, per_page: 10 }
+      });
+
+      const newRecords = response.data.data || response.data;
+      const pagination = response.data.pagination || response.data.meta;
+
+      if (append) {
+        setRecords(prev => [...prev, ...newRecords]);
+      } else {
+        setRecords(newRecords);
+      }
+      
+      // Check if there are more records to load
+      if (pagination) {
+        setHasMore(pagination.current_page < pagination.last_page);
+      } else {
+        setHasMore(newRecords.length > 0);
+      }
+    } catch (error) {
+      console.error('Load records error:', error);
+      if (page === 1) {
+        toast.error('Error loading records.');
+      }
+      setRecords([]);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
   }
   const handleAddRecord = async (formData) => {
     try {
-      //TODO: make add new record functional
+      const response = await api.post('plants', formData);
+      const newRecord = response.data.data || response.data;
+      
+      setRecords(prev => [newRecord, ...prev]);
       toast.success("New record saved.");
+      setIsModalOpen(false);
     } catch (error) {
       console.error(error);
-      toast.error("Error encountered while saving record.");
+      toast.error(error?.message || "Error encountered while saving record.");
     }
-
-    setIsModalOpen(false)
   }
   const handleUpdateRecord = async (data) => {
     try {
-      //TODO make update record functional
+      const response = await api.put(`plants/${data.id}`, data);
+      const updatedRecord = response.data.data || response.data;
+
+      setRecords(prev =>
+        prev.map(record => record.id === data.id ? updatedRecord : record)
+      );
       toast.success("Plant data updated.");
     } catch (error) {
       console.error(error);
@@ -54,8 +110,8 @@ function Records() {
     try {
       const isDelete = confirm("Are you sure you want to delete this record?");
       if (isDelete) {
-        await api.delete(`plants/${data.id}`, data);
-        setRecords(prev => prev?.filter( val => data.id !== val.id))
+        await api.delete(`plants/${data.id}`);
+        setRecords(prev => prev?.filter(val => data.id !== val.id));
         toast.success("Plant data deleted.");
       }
     } catch (error) {
@@ -112,7 +168,7 @@ function Records() {
     }
     if (searchTerm) {
       setCurrentPage(1);
-      setHasMore(false);
+      handleSearchPlants(searchTerm);
     } else {
       setCurrentPage(1);
       setHasMore(true);
@@ -243,6 +299,24 @@ function Records() {
         {!hasMore && records.length > 0 && !searchTerm && (
           <div className="text-center py-4 text-gray-400 text-sm border-t border-gray-100">
             No more records to load
+          </div>
+        )}
+
+        {/* Pagination Footer */}
+        {records.length > 0 && !searchTerm && (
+          <div className="bg-gray-50 border-t border-gray-100 px-6 py-4 flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Showing <span className="font-semibold">{records.length}</span> record{records.length !== 1 ? 's' : ''} • Page <span className="font-semibold">{currentPage}</span>
+            </div>
+            {hasMore && (
+              <button
+                onClick={() => loadMore()}
+                disabled={isLoadingMore}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {isLoadingMore ? 'Loading...' : 'Load More'}
+              </button>
+            )}
           </div>
         )}
       </div>
