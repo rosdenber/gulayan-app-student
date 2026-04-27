@@ -266,6 +266,24 @@ function Records() {
             No more records to load
           </div>
         )}
+
+        {/* Pagination Footer */}
+        {records.length > 0 && !searchTerm && (
+          <div className="bg-gray-50 border-t border-gray-100 px-6 py-4 flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Showing <span className="font-semibold">{records.length}</span> record{records.length !== 1 ? 's' : ''} • Page <span className="font-semibold">{currentPage}</span>
+            </div>
+            {hasMore && (
+              <button
+                onClick={() => loadMore()}
+                disabled={isLoadingMore}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {isLoadingMore ? 'Loading...' : 'Load More'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Modal */}
