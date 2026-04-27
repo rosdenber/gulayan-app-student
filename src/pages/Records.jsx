@@ -22,8 +22,21 @@ function Records() {
   const observerTarget = useRef(null);
   const isInInitialMount = useRef(true);
 
-  const handleSearchPlants = async () => {
-    // TODO search from the the backend; in case that all records is not yet loaded
+  const handleSearchPlants = async (query) => {
+    try {
+      setIsLoading(true);
+      const response = await api.get('plants/search', {
+        params: { q: query }
+      });
+      setRecords(response.data.data || response.data);
+      setHasMore(false); // Disable infinite scroll during search
+    } catch (error) {
+      console.error('Search error:', error);
+      toast.error('Error searching records.');
+      setRecords([]);
+    } finally {
+      setIsLoading(false);
+    }
   }
   const handleLoadRecords = async (page = 1, append = false) => {
     //TODO: load the data from the database
@@ -113,7 +126,7 @@ function Records() {
     }
     if (searchTerm) {
       setCurrentPage(1);
-      setHasMore(false);
+      handleSearchPlants(searchTerm);
     } else {
       setCurrentPage(1);
       setHasMore(true);
