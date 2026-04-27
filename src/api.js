@@ -27,14 +27,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const { status, data } = error?.response;
-    const message = data?.message ?? "Error encountered.";
+    const { status, data } = error?.response || {};
+    const message = data?.message ?? error?.message ?? "Error encountered.";
 
     if (status === 401) {
       localStorage.removeItem("token");
       window.location.replace("/login");
     }
-    return Promise.reject({  ...error, message, status});
+    return Promise.reject({ ...error, message, status });
   }
 )
 
