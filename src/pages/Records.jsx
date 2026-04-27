@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 function Records() {
   //TODO: add loading icon while ongoing ang loading ng records.
+  //Loading icon UI is already implementd with PlantLoading component, just need to add the loading state and logic to show it when loading records from the database.
   const [records, setRecords] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
