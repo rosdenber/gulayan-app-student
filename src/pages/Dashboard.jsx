@@ -25,8 +25,10 @@ function Dashboard() {
     const loadPlants = async () => {
       try {
         const plantsData = await fetchPlants();
-        setPlants(plantsData);
-      } catch (error) {
+        // API returns paginated response: { data: { data: [...plants] } }
+        const plantsArray = plantsData?.data?.data ?? plantsData?.data ?? plantsData ?? [];
+        setPlants(Array.isArray(plantsArray) ? plantsArray : []);
+      }  catch (error) {
         console.error("Error fetching plants:", error);
         // You might want to show a toast notification here
       }
@@ -77,7 +79,7 @@ function Dashboard() {
                   Variety
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                  Estimated Count
+                  Seedling Count
                 </th>
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
                   Date Planted
@@ -97,7 +99,7 @@ function Dashboard() {
                     {plant.variety}
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600">
-                    {plant.estimated_count}
+                    {plant.seedling_count}
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-800 font-medium">
                     {new Date(plant.date_planted).toLocaleDateString("en-US", {
