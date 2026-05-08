@@ -6,6 +6,34 @@ import PlantLoading from '../components/PlantLoading';
 import { api } from '../api';
 import { toast } from 'sonner';
 
+// Deeply extract the records array from a (potentially nested) API response
+const extractArray = (data) => {
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === 'object') {
+    // drill into nested .data until we find an array
+    if (Array.isArray(data.data)) return data.data;
+    if (data.data && typeof data.data === 'object' && Array.isArray(data.data.data)) {
+      return data.data.data;
+    }
+  }
+  return [];
+};
+
+// Extract pagination metadata from a (potentially nested) API response
+const extractPagination = (data) => {
+  if (!data || typeof data !== 'object') return null;
+  // Direct pagination keys at top level (e.g. { data: [...], current_page, last_page })
+  if (data.current_page !== undefined) return data;
+  if (data.pagination) return data.pagination;
+  if (data.meta) return data.meta;
+  // One level deeper
+  if (data.data && typeof data.data === 'object') {
+    if (data.data.current_page !== undefined) return data.data;
+    if (data.data.pagination) return data.data.pagination;
+    if (data.data.meta) return data.data.meta;
+  }
+  return null;
+};
 function Records() {
   //TODO: add loading icon while ongoing ang loading ng records.
   //Loading icon UI is already implementd with PlantLoading component, just need to add the loading state and logic to show it when loading records from the database.
@@ -28,7 +56,7 @@ function Records() {
       const response = await api.get('plants/search', {
         params: { q: query }
       });
-      setRecords(response.data.data || response.data);
+      setRecords(extractArray(response.data));
       setHasMore(false); // Disable infinite scroll during search
     } catch (error) {
       console.error('Search error:', error);
@@ -51,8 +79,10 @@ function Records() {
         params: { page, per_page: 10 }
       });
 
-      const newRecords = response.data.data || response.data;
-      const pagination = response.data.pagination || response.data.meta;
+      console.log('API response.data:', JSON.stringify(response.data, null, 2));
+      const newRecords = extractArray(response.data);
+      const pagination = extractPagination(response.data);
+      console.log('Extracted records:', newRecords.length, 'Pagination:', pagination);
 
       if (append) {
         setRecords(prev => [...prev, ...newRecords]);
@@ -93,17 +123,22 @@ function Records() {
   const handleUpdateRecord = async (data) => {
     try {
       const response = await api.put(`plants/${data.id}`, data);
-      const updatedRecord = response.data.data || response.data;
+      // Extract the updated record — try nested .data, fallback to submitted data
+      const responseData = response.data?.data || response.data;
+      const updatedRecord = (responseData && typeof responseData === 'object' && !Array.isArray(responseData))
+        ? responseData
+        : data; // fallback to submitted data if response is unexpected
 
       setRecords(prev =>
-        prev.map(record => record.id === data.id ? updatedRecord : record)
+        prev.map(record => record.id === data.id ? { ...record, ...updatedRecord } : record)
       );
       toast.success("Plant data updated.");
     } catch (error) {
       console.error(error);
-      toast.error("Error encountered during update.");
+      toast.error(error?.message || "Error encountered during update.");
     } finally {
       setIsEditRecord(false);
+      setDataToUpdate(null);
     }
   }
   const handleDeleteRecord = async (data) => {
@@ -119,7 +154,7 @@ function Records() {
       toast.error("Error encountered while deleting record.");
     }
   }
-  const filteredRecords = records.filter(record =>
+  const filteredRecords = (Array.isArray(records) ? records : []).filter(record =>
     record.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     record.variety?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     record.seedling_source?.toLowerCase().includes(searchTerm.toLowerCase())
