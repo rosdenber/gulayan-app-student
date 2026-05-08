@@ -123,17 +123,22 @@ function Records() {
   const handleUpdateRecord = async (data) => {
     try {
       const response = await api.put(`plants/${data.id}`, data);
-      const updatedRecord = response.data.data || response.data;
+      // Extract the updated record — try nested .data, fallback to submitted data
+      const responseData = response.data?.data || response.data;
+      const updatedRecord = (responseData && typeof responseData === 'object' && !Array.isArray(responseData))
+        ? responseData
+        : data; // fallback to submitted data if response is unexpected
 
       setRecords(prev =>
-        prev.map(record => record.id === data.id ? updatedRecord : record)
+        prev.map(record => record.id === data.id ? { ...record, ...updatedRecord } : record)
       );
       toast.success("Plant data updated.");
     } catch (error) {
       console.error(error);
-      toast.error("Error encountered during update.");
+      toast.error(error?.message || "Error encountered during update.");
     } finally {
       setIsEditRecord(false);
+      setDataToUpdate(null);
     }
   }
   const handleDeleteRecord = async (data) => {
